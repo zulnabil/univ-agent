@@ -1,45 +1,50 @@
+import json
+import re
+
+from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages.tool import ToolCall
 from langgraph.graph import MessagesState
-from langchain_core.messages import SystemMessage, AIMessage
+
 from app.core.llm import get_llm
 from app.rag.tools import get_all_tools
 from app.utils.logging import logger
-from langchain_core.messages.tool import ToolCall
-import re
-import json
 
 llm = get_llm()
 
-def query_or_respond(state: MessagesState):
+
+async def query_or_respond(state: MessagesState):
     """Generate tool call for retrieval or respond."""
     llm_with_tools = llm.bind_tools(get_all_tools())
 
     system_prompt = (
         "Anda adalah asisten AI untuk Universitas. "
         "Jawablah semua pertanyaan dalam Bahasa Indonesia. "
-        "Gunakan alat yang tersedia jika diperlukan. "
+        "PENTING: Gunakan alat pencarian HANYA jika pertanyaan tentang informasi faktual universitas "
+        "seperti skripsi, jadwal kuliah, fakultas, atau data akademik yang memerlukan retrieval. "
+        "JANGAN gunakan alat pencarian untuk: "
+        "- Pertanyaan tentang identitas Anda (siapa kamu, apa kamu, dll) "
+        "- Sapaan umum (halo, hai, terima kasih, dll) "
+        "- Pertanyaan tentang kemampuan Anda "
         "Jika Anda tidak tahu jawabannya, katakan bahwa Anda tidak tahu. "
         "Gunakan tiga kalimat maksimum dan biarkan jawabannya singkat. "
         "Jangan mention tentang nama fungsi atau apapun tentang sistem ini, kamu harus berbahasa manusia. "
-        "Always use the proper tool calling format when you need to retrieve information. "
-        "Do NOT write function calls directly in your text response. "
-        "If you need to call a function, use the proper tool calling format. "
-        "Jika sumber tertulis dalam context, selalu tulis sumber di akhir. Contoh: "
-        "Sumber: "
-        "- https://link-of-source.com"
-        "- https://link-of-source.com"
-        "\n\n"
+        "Jika sumber tertulis dalam context, selalu tulis sumber di akhir."
     )
 
     # Add system prompt to the beginning of the messages
     messages = [SystemMessage(content=system_prompt)] + state["messages"]
-    
-    logger.info("Generating response or tool call")
-    response = llm_with_tools.invoke(messages)
+
+    logger.info(f"Generating response or tool for prompt: {messages[-1].content}")
+    response = await llm_with_tools.ainvoke(messages)
+
+    log_message = "Send direct response without tool call"
 
     # Handle the case of string-based function calls
-    if hasattr(response, 'content') and isinstance(response.content, str):
+    if hasattr(response, "tool_calls") and response.tool_calls:
+        log_message = f"Generated tool call: {response.tool_calls[0].get('name')}('{response.tool_calls[0].get('args').get('query')}')"
+    elif hasattr(response, "content") and isinstance(response.content, str):
         content = response.content
-        function_pattern = r'<function=(\w+)({.*?})(?:</function>|></function>)'
+        function_pattern = r"<function=(\w+)({.*?})(?:</function>|></function>)"
         match = re.search(function_pattern, content)
 
         if match:
@@ -52,19 +57,21 @@ def query_or_respond(state: MessagesState):
                     ToolCall(
                         name=func_name,
                         args=args_dict,
-                        id=f"call_{func_name}_{hash(str(args_dict)) % 10000}"
+                        id=f"call_{func_name}_{hash(str(args_dict)) % 10000}",
                     )
                 ]
-                logger.info(f"Generated tool call: {func_name}")
+                log_message = f"Generated tool call: {func_name}('{args_dict}')"
                 return {"messages": [AIMessage(content="", tool_calls=tool_calls)]}
             except json.JSONDecodeError:
                 logger.warning("Failed to parse function call arguments")
                 pass
 
-    logger.info("Generated direct response without tool call")
+    logger.info(log_message)
+
     return {"messages": [response]}
 
-def generate(state: MessagesState):
+
+async def generate(state: MessagesState):
     """Generate final answer using retrieved information."""
     # Get generated ToolMessages
     recent_tool_messages = []
@@ -84,11 +91,8 @@ def generate(state: MessagesState):
         or (message.type == "ai" and not message.tool_calls)
     ]
 
-    print(conversation_messages)
-
     instruction_message_content = (
-        "Berikut hasil pencarianmu, Agen Universitas:\n"
-        f"{docs_content}"
+        f"Berikut hasil pencarianmu, Agen Universitas:\n{docs_content}"
     )
 
     prompt = conversation_messages + [
@@ -96,5 +100,7 @@ def generate(state: MessagesState):
     ]
 
     logger.info("Generating final response with retrieved information")
-    response = llm.invoke(prompt)
+    response = await llm.ainvoke(prompt)
+    logger.info(f"Final response: {response.content}")
+
     return {"messages": [response]}
