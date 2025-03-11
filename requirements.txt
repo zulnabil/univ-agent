@@ -7,3 +7,4 @@ langchain-core>=0.1.4
 langchain-deepinfra>=0.0.1
 langchain-milvus>=0.1.1
 langgraph>=0.0.42
+colorlog>=6.8.0
