@@ -1,7 +1,8 @@
+import time
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import time
 
 from app.api.endpoints import router as api_router
 from app.config import settings
@@ -26,6 +27,7 @@ app.add_middleware(
 # Include API routers with version prefix
 app.include_router(api_router, prefix="/v1")
 
+
 # Generic error handler
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
@@ -37,10 +39,11 @@ async def generic_exception_handler(request: Request, exc: Exception):
                 "message": str(exc),
                 "type": type(exc).__name__,
                 "param": None,
-                "code": "internal_server_error"
+                "code": "internal_server_error",
             }
-        }
+        },
     )
+
 
 @app.get("/")
 async def root():
@@ -49,20 +52,24 @@ async def root():
         "name": "University RAG API",
         "version": "1.0.0",
         "status": "online",
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
+
 
 # Startup event
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting University RAG API")
 
+
 # Shutdown event
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Shutting down University RAG API")
 
+
 # Run the app if executed directly
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="localhost", port=8000, reload=settings.DEBUG)
+
+    uvicorn.run("app.main:app", host="localhost", port=18000, reload=settings.DEBUG)
