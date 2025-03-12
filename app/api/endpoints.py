@@ -57,7 +57,7 @@ async def chat_completions(
         conversation_id = str(uuid.uuid4())
 
         # Invoke the graph
-        result = rag_graph.invoke({"messages": input_messages})
+        result = await rag_graph.ainvoke({"messages": input_messages})
 
         # Extract the final assistant message
         final_message = result["messages"][-1]

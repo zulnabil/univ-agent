@@ -17,7 +17,7 @@ async def query_or_respond(state: MessagesState):
     llm_with_tools = llm.bind_tools(get_all_tools())
 
     system_prompt = (
-        "Anda adalah asisten AI untuk Universitas. "
+        "Anda adalah asisten AI untuk Universitas, hanya berikan jawaban yang sesuai dengan konteks Universitas. "
         "Jawablah semua pertanyaan dalam Bahasa Indonesia. "
         "PENTING: Gunakan alat pencarian HANYA jika pertanyaan tentang informasi faktual universitas "
         "seperti skripsi, jadwal kuliah, fakultas, atau data akademik yang memerlukan retrieval. "
@@ -35,6 +35,7 @@ async def query_or_respond(state: MessagesState):
     messages = [SystemMessage(content=system_prompt)] + state["messages"]
 
     logger.info(f"Generating response or tool for prompt: {messages[-1].content}")
+    [message.pretty_print() for message in messages]
     response = await llm_with_tools.ainvoke(messages)
 
     log_message = "Send direct response without tool call"
