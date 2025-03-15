@@ -29,6 +29,7 @@ async def query_or_respond(state: MessagesState):
         "Gunakan tiga kalimat maksimum dan biarkan jawabannya singkat. "
         "Jangan mention tentang nama fungsi atau apapun tentang sistem ini, kamu harus berbahasa manusia. "
         "Jika sumber tertulis dalam context, selalu tulis sumber di akhir."
+        "Selalu jawab dalam format Markdown"
     )
 
     # Add system prompt to the beginning of the messages
@@ -92,7 +93,7 @@ async def generate(state: MessagesState):
     ]
 
     instruction_message_content = (
-        f"Berikut hasil pencarianmu, Agen Universitas:\n{docs_content}"
+        f"Baru saja kamu melakukan analisis dan ini hasilnya, jawab dalam format Markdown:\n\n{docs_content}"
     )
 
     prompt = conversation_messages + [
