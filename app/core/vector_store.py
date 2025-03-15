@@ -31,6 +31,7 @@ def get_vector_store():
         consistency_level="Strong",
         connection_args={"uri": settings.MILVUS_URI, "token": settings.MILVUS_TOKEN},
         collection_name=settings.MILVUS_COLLECTION,
+        enable_dynamic_field=True,
         auto_id=True,
     )
 
