@@ -14,6 +14,7 @@ app = FastAPI(
     title="University RAG API",
     description="OpenAI-compatible API for University RAG System",
     version="1.0.0",
+    root_path="/univ",
 )
 
 # Add CORS middleware
