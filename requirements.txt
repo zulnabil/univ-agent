@@ -10,5 +10,6 @@ langchain-milvus>=0.1.1
 langgraph>=0.0.42
 colorlog>=6.8.0
 PyPDF2>=3.0.0
+pypdf>=5.3.1
 python-multipart>=0.0.6
 docx2txt>=0.8
