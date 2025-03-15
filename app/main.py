@@ -2,6 +2,7 @@ import time
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 from app.api.endpoints import router as api_router
@@ -23,6 +24,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title="University RAG API",
+        version="1.0.0",
+        description="OpenAI-compatible API for University RAG System",
+        routes=app.routes,
+    )
+
+    # Add security scheme for API key
+    openapi_schema["components"]["securitySchemes"] = {
+        "ApiKeyAuth": {"type": "apiKey", "in": "query", "name": "api_key"}
+    }
+
+    # Apply security globally
+    openapi_schema["security"] = [{"ApiKeyAuth": []}]
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 # Include API routers with version prefix
 app.include_router(api_router, prefix="/v1")
