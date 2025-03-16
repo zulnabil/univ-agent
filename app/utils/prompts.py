@@ -19,3 +19,12 @@ instruction_message_content = "Baru saja kamu melakukan analisis dan ini hasilny
 
 def get_instruction_message_content(docs_content: str):
     return instruction_message_content + docs_content
+
+
+generate_tag_prompt = """
+    get tag of given document, can be one of the following tags:
+    - student_thesis
+    - schedules
+    - other
+    only answer with the tag
+    """

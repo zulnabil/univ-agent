@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     DEEPINFRA_API_TOKEN: str = os.getenv("DEEPINFRA_API_TOKEN", "")
     LLM_MODEL: str = os.getenv("LLM_MODEL", "meta-llama/Llama-3.3-70B-Instruct-Turbo")
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
+    DEEPINFRA_ENDPOINT_MODELS: str = "https://api.deepinfra.com/v1/openai/models"
 
     # Milvus settings
     MILVUS_URI: str = os.getenv(
