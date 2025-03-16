@@ -1,8 +1,6 @@
-from langchain_core.tools import tool
 from app.core.vector_store import get_vector_store
 from app.utils.logging import logger
 
-vector_store = get_vector_store()
 
 def retrieve_university_data(query: str, tags: list[str]):
     """
@@ -21,28 +19,28 @@ def retrieve_university_data(query: str, tags: list[str]):
     """
     logger.info(f"Retrieving university data for query: {query} and tags: {tags}")
 
+    vector_store = get_vector_store()
+
     # Set up search parameters
     search_kwargs = {
         "k": 5,
         "ranker_type": "weighted",
-        "ranker_params": {"weights": [0.5, 0.5]}
+        "ranker_params": {"weights": [0.5, 0.5]},
     }
-    
+
     # Only add filter expression if tags are provided
     if tags and len(tags) > 0:
-        search_kwargs["expr"] = f"document_type in {tags}"
+        search_kwargs["expr"] = f"tag in {tags}"
 
-    retrieved_docs = vector_store.similarity_search(
-        query,
-        **search_kwargs
-    )
+    retrieved_docs = vector_store.similarity_search(query, **search_kwargs)
 
     serialized = "\n\n".join(
-        (f"Source: {doc.metadata.get('source')}\n" f"Content: {doc.page_content}")
+        (f"Source: {doc.metadata.get('source')}\nContent: {doc.page_content}")
         for doc in retrieved_docs
     )
-    
+
     return serialized, retrieved_docs
+
 
 def get_all_tools():
     """Return all available tools."""

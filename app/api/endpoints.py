@@ -6,6 +6,7 @@ from typing import List
 import aiohttp
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.api.dependencies import verify_api_key
 from app.api.models import (
@@ -14,6 +15,7 @@ from app.api.models import (
     ChatCompletionResponse,
     HealthCheckResponse,
 )
+from app.core.llm import get_llm
 from app.core.vector_store import (
     add_documents_to_vector_store,
     get_vector_from_csv,
@@ -178,7 +180,8 @@ async def process_single_file(file: UploadFile) -> dict:
         hash = get_hash_from_bytes(content)
         docs = await get_vector_by_content_type(content, file.content_type)
         logger.info(f"Extracted {len(docs)} documents from {file.filename}")
-        await add_documents_to_vector_store(docs, hash)
+        tag = await get_tag_by_document(docs)
+        await add_documents_to_vector_store(docs, hash, tag)
 
         return {
             "filename": file.filename,
@@ -203,6 +206,26 @@ async def get_vector_by_content_type(content: bytes, content_type: str):
         raise ValueError(f"Unsupported content type: {content_type}")
 
     return await handler(content)
+
+
+async def get_tag_by_document(documents: list):
+    """Generate tag by document."""
+    num_chunks = min(5, len(documents))
+    content = "\n".join([doc.page_content for doc in documents[:num_chunks]])
+    llm = get_llm()
+    tag = await llm.ainvoke(
+        [
+            SystemMessage("""
+    get tag of given document, can be one of the following tags:
+    - student_thesis
+    - schedules
+    - other
+    only answer with the tag
+    """),
+            HumanMessage(content=content),
+        ]
+    )
+    return tag.content
 
 
 @router.get(

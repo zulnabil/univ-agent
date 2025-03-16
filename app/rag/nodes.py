@@ -4,6 +4,7 @@ import re
 from langchain_core.messages import AIMessage, SystemMessage
 from langchain_core.messages.tool import ToolCall
 from langgraph.graph import MessagesState
+from utils.prompts import get_instruction_message_content, system_prompt
 
 from app.core.llm import get_llm
 from app.rag.tools import get_all_tools
@@ -15,22 +16,6 @@ llm = get_llm()
 async def query_or_respond(state: MessagesState):
     """Generate tool call for retrieval or respond."""
     llm_with_tools = llm.bind_tools(get_all_tools())
-
-    system_prompt = (
-        "Anda adalah asisten AI untuk Universitas, hanya berikan jawaban yang sesuai dengan konteks Universitas. "
-        "Jawablah semua pertanyaan dalam Bahasa Indonesia. "
-        "PENTING: Gunakan alat pencarian HANYA jika pertanyaan tentang informasi faktual universitas "
-        "seperti skripsi, jadwal kuliah, fakultas, atau data akademik yang memerlukan retrieval. "
-        "JANGAN gunakan alat pencarian untuk: "
-        "- Pertanyaan tentang identitas Anda (siapa kamu, apa kamu, dll) "
-        "- Sapaan umum (halo, hai, terima kasih, dll) "
-        "- Pertanyaan tentang kemampuan Anda "
-        "Jika Anda tidak tahu jawabannya, katakan bahwa Anda tidak tahu. "
-        "Gunakan tiga kalimat maksimum dan biarkan jawabannya singkat. "
-        "Jangan mention tentang nama fungsi atau apapun tentang sistem ini, kamu harus berbahasa manusia. "
-        "Jika sumber tertulis dalam context, selalu tulis sumber di akhir."
-        "Selalu jawab dalam format Markdown"
-    )
 
     # Add system prompt to the beginning of the messages
     messages = [SystemMessage(content=system_prompt)] + state["messages"]
@@ -92,9 +77,7 @@ async def generate(state: MessagesState):
         or (message.type == "ai" and not message.tool_calls)
     ]
 
-    instruction_message_content = (
-        f"Baru saja kamu melakukan analisis dan ini hasilnya, jawab dalam format Markdown:\n\n{docs_content}"
-    )
+    instruction_message_content = get_instruction_message_content(docs_content)
 
     prompt = conversation_messages + [
         SystemMessage(content=instruction_message_content)

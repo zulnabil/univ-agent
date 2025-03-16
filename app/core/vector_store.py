@@ -11,7 +11,6 @@ from langchain_community.document_loaders import (
     TextLoader,
 )
 from langchain_milvus import BM25BuiltInFunction, Milvus
-from pymilvus import MilvusClient
 
 from app.config import settings
 from app.core.embeddings import get_embeddings
@@ -38,15 +37,7 @@ def get_vector_store():
     return vector_store
 
 
-def get_vector_store_client():
-    """Get the vector store client."""
-    return MilvusClient(
-        uri=settings.MILVUS_URI,
-        token=settings.MILVUS_TOKEN,
-    )
-
-
-async def add_documents_to_vector_store(documents: list, hash: str):
+async def add_documents_to_vector_store(documents: list, hash: str, tag: str):
     """Add documents to the vector store."""
     try:
         logger.info(f"Adding {len(documents)} documents to vector store...")
@@ -58,6 +49,10 @@ async def add_documents_to_vector_store(documents: list, hash: str):
         )
         if existing_hashes:
             raise ValueError("Hashes already in the vector store")
+
+        # replace metadata with tag
+        for doc in documents:
+            doc.metadata = {"tag": tag}
 
         vector_store.auto_id = False
         await vector_store.aadd_documents(documents, ids=hashes)
