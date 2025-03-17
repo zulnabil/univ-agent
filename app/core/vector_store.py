@@ -17,24 +17,39 @@ from app.core.embeddings import get_embeddings
 from app.utils.logging import logger
 
 
+class VectorStoreManager:
+    _instance = None
+    _vector_store = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(VectorStoreManager, cls).__new__(cls)
+        return cls._instance
+
+    @property
+    def vector_store(self):
+        if self._vector_store is None:
+            logger.info(f"Initializing Milvus connection at {settings.MILVUS_URI}")
+            embeddings = get_embeddings()
+            self._vector_store = Milvus(
+                embeddings,
+                builtin_function=BM25BuiltInFunction(),
+                vector_field=["dense", "sparse"],
+                consistency_level="Strong",
+                connection_args={
+                    "uri": settings.MILVUS_URI,
+                    "token": settings.MILVUS_TOKEN,
+                },
+                collection_name=settings.MILVUS_COLLECTION,
+                enable_dynamic_field=True,
+                auto_id=True,
+            )
+        return self._vector_store
+
+
 def get_vector_store():
     """Initialize and return the vector store."""
-    logger.info(f"Connecting to Milvus at {settings.MILVUS_URI}")
-
-    embeddings = get_embeddings()
-
-    vector_store = Milvus(
-        embeddings,
-        builtin_function=BM25BuiltInFunction(),
-        vector_field=["dense", "sparse"],
-        consistency_level="Strong",
-        connection_args={"uri": settings.MILVUS_URI, "token": settings.MILVUS_TOKEN},
-        collection_name=settings.MILVUS_COLLECTION,
-        enable_dynamic_field=True,
-        auto_id=True,
-    )
-
-    return vector_store
+    return VectorStoreManager().vector_store
 
 
 async def add_documents_to_vector_store(documents: list, hash: str, tag: str):
@@ -56,6 +71,8 @@ async def add_documents_to_vector_store(documents: list, hash: str, tag: str):
 
         vector_store.auto_id = False
         await vector_store.aadd_documents(documents, ids=hashes)
+        logger.info("Documents added successfully.")  # Log successful addition
+
     except Exception as e:
         logger.error(f"Error adding documents to vector store: {e}")
         raise e
