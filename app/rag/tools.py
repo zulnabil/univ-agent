@@ -29,7 +29,7 @@ def retrieve_university_data(query: str, tags: list[str]):
     }
 
     # Only add filter expression if tags are provided
-    if tags and len(tags) > 0:
+    if tags and len(tags) > 0 and "other" not in tags:
         search_kwargs["expr"] = f"tag in {tags}"
 
     retrieved_docs = vector_store.similarity_search(query, **search_kwargs)
